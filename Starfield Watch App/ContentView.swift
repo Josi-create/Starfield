@@ -13,11 +13,14 @@ struct Star: Identifiable {
 struct ContentView: View {
     @State private var stars: [Star] = []
     @State private var rotation: Double = 0
-    @State private var lastRotation: Double = 0
+    @State private var currentTime = Date()
+    
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Starfield
                 ForEach(stars) { star in
                     Circle()
                         .fill(Color.white)
@@ -25,21 +28,34 @@ struct ContentView: View {
                         .position(x: star.x, y: star.y)
                         .opacity(star.opacity)
                 }
+                
+                // Digital Clock
+                Text(timeString(from: currentTime))
+                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
             }
             .background(Color.black)
-            .rotationEffect(Angle(degrees: rotation * 10)) // Multiply by 10 for faster rotation
+            .rotationEffect(Angle(degrees: rotation))
             .focusable()
-            .digitalCrownRotation($rotation, from: 0, through: 360, by: 0.1, sensitivity: .medium, isContinuous: true, isHapticFeedbackEnabled: true)
+            .digitalCrownRotation($rotation, from: 0, through: 360, by: 1, sensitivity: .medium, isContinuous: true, isHapticFeedbackEnabled: true)
             .onAppear {
                 createStars(in: geometry.size)
             }
             .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in
                 updateStars(in: geometry.size)
-                updateRotation()
+            }
+            .onReceive(timer) { input in
+                currentTime = input
             }
         }
     }
     
+    func timeString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
     func createStars(in size: CGSize) {
         let centerX = size.width / 2
         let centerY = size.height / 2
@@ -51,7 +67,7 @@ struct ContentView: View {
         }
     }
     
-     func updateStars(in size: CGSize) {
+    func updateStars(in size: CGSize) {
         let centerX = size.width / 2
         let centerY = size.height / 2
         
@@ -60,13 +76,8 @@ struct ContentView: View {
             let dx = cos(star.angle) * star.speed
             let dy = sin(star.angle) * star.speed
             
-            // Apply rotation to the star movement
-            let rotationRadians = (rotation - lastRotation) * .pi / 180 * 10
-            let rotatedDx = dx * cos(rotationRadians) - dy * sin(rotationRadians)
-            let rotatedDy = dx * sin(rotationRadians) + dy * cos(rotationRadians)
-            
-            star.x += CGFloat(rotatedDx)
-            star.y += CGFloat(rotatedDy)
+            star.x += CGFloat(dx)
+            star.y += CGFloat(dy)
             
             let distanceFromCenter = hypot(star.x - centerX, star.y - centerY)
             let maxDistance = hypot(size.width / 2, size.height / 2)
@@ -82,12 +93,7 @@ struct ContentView: View {
             stars[i] = star
         }
     }
-    func updateRotation() {
-        // Update lastRotation to keep track of the change in rotation
-        lastRotation = rotation
     }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
