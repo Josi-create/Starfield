@@ -1,5 +1,4 @@
 import SwiftUI
-
 struct Star: Identifiable {
     let id = UUID()
     var x: CGFloat
@@ -14,8 +13,10 @@ struct ContentView: View {
     @State private var stars: [Star] = []
     @State private var rotation: Double = 0
     @State private var currentTime = Date()
+    @State private var isActive = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    let starUpdateTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         GeometryReader { geometry in
@@ -37,16 +38,23 @@ struct ContentView: View {
             }
             .background(Color.black)
             .rotationEffect(Angle(degrees: rotation))
+            .animation(.linear(duration: 0.1), value: rotation)
             .focusable()
-            .digitalCrownRotation($rotation, from: 0, through: 360, by: 1, sensitivity: .medium, isContinuous: true, isHapticFeedbackEnabled: true)
+            .digitalCrownRotation($rotation, from: -Double.infinity, through: Double.infinity, by: 1, sensitivity: .high, isContinuous: true, isHapticFeedbackEnabled: true)
+            .opacity(isActive ? 1.0 : 0.5)
             .onAppear {
                 createStars(in: geometry.size)
             }
-            .onReceive(Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()) { _ in
-                updateStars(in: geometry.size)
+            .onChange(of: WKExtension.shared().applicationState) { _, newValue in
+                isActive = (newValue == .active)
             }
             .onReceive(timer) { input in
                 currentTime = input
+            }
+            .onReceive(starUpdateTimer) { _ in
+                if isActive {
+                    updateStars(in: geometry.size)
+                }
             }
         }
     }
@@ -56,6 +64,7 @@ struct ContentView: View {
         formatter.timeStyle = .medium
         return formatter.string(from: date)
     }
+    
     func createStars(in size: CGSize) {
         let centerX = size.width / 2
         let centerY = size.height / 2
@@ -94,6 +103,7 @@ struct ContentView: View {
         }
     }
     }
+
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
