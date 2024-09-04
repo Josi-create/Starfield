@@ -14,7 +14,8 @@ struct ContentView: View {
     @State private var stars: [Star] = []
     @State private var rotation: Double = 0
     @State private var currentTime = Date()
-    
+    @State private var crownRotation: Double = 0
+
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
@@ -38,7 +39,10 @@ struct ContentView: View {
             .background(Color.black)
             .rotationEffect(Angle(degrees: rotation))
             .focusable()
-            .digitalCrownRotation($rotation, from: 0, through: 360, by: 1, sensitivity: .medium, isContinuous: true, isHapticFeedbackEnabled: true)
+            .digitalCrownRotation($crownRotation)
+            .onChange(of: crownRotation) { newValue in
+                rotation = newValue * 2 // Multiply by 2 for faster rotation
+            }
             .onAppear {
                 createStars(in: geometry.size)
             }
@@ -47,8 +51,8 @@ struct ContentView: View {
             }
             .onReceive(timer) { input in
                 currentTime = input
-            }
         }
+    }
     }
     
     func timeString(from date: Date) -> String {
@@ -56,6 +60,7 @@ struct ContentView: View {
         formatter.timeStyle = .medium
         return formatter.string(from: date)
     }
+    
     func createStars(in size: CGSize) {
         let centerX = size.width / 2
         let centerY = size.height / 2
@@ -94,6 +99,7 @@ struct ContentView: View {
         }
     }
     }
+
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
