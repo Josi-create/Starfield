@@ -40,7 +40,7 @@ struct ContentView: View {
             .rotationEffect(Angle(degrees: rotation))
             .focusable()
             .digitalCrownRotation($crownRotation)
-            .onChange(of: crownRotation) { newValue in
+            .onChange(of: crownRotation) { oldValue, newValue in
                 rotation = newValue * 2 // Multiply by 2 for faster rotation
             }
             .onAppear {
